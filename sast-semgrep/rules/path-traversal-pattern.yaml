@@ -1,0 +1,12 @@
+rules:
+  - id: path-traversal-python
+    patterns:
+      - pattern: open(f"...{$USER_NAME}...")
+    metavariable-pattern:
+      metavariable: $USER_NAME
+      patterns:
+        - pattern-regex: .+
+    message: "Path Traversal: чтение файлов по пользовательскому вводу"
+    languages:
+      - python
+    severity: WARNING

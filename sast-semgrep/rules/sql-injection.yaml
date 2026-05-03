@@ -1,0 +1,11 @@
+rules:
+  - id: python-sql-injection
+    patterns:
+      - pattern: |
+          $QUERY = f"..."
+      - pattern: |
+          cursor.execute($QUERY)
+    message: "SQL Injection: переменная $QUERY содержит f-строку с подстановкой и передаётся в execute()"
+    languages:
+      - python
+    severity: ERROR

@@ -1,0 +1,13 @@
+rules:
+  - id: command-injection-python-custom
+    patterns:
+      - pattern: subprocess.call(...)
+    pattern-where-python: |
+      # Доступ к строке кода через 'str'
+      if "shell=True" in str and not "ping -c 1 127.0.0.1" in str:
+          return True
+      return False
+    message: "Прямая Command Injection с shell=True (проверено скриптом)"
+    languages:
+      - python
+    severity: ERROR

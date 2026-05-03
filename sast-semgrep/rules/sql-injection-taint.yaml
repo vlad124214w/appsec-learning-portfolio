@@ -1,0 +1,17 @@
+rules:
+  - id: python-sql-injection-taint
+    mode: taint
+    pattern-sources:
+      - patterns:
+          # Источник: аргумент функции (username)
+          - pattern: $FUNC($X)
+          - focus-metavariable: $X
+    pattern-sinks:
+      - patterns:
+          # Раковина: любой вызов cursor.execute
+          - pattern: cursor.execute(...)
+    message: |
+      SQL инъекция через taint-анализ. Данные из 'username' не прошли санацию.
+    languages:
+      - python
+    severity: ERROR

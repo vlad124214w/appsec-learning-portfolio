@@ -1,0 +1,11 @@
+rules:
+  - id: python-command-injection-shell-true
+    pattern: |
+      subprocess.call($CMD, shell=True)
+    message: "Command Injection: использование shell=True с динамическими данными может привести к выполнению произвольных команд"
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      cwe: "CWE-78"
+      owasp: "A03:2021 - Injection"

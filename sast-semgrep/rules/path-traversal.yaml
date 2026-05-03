@@ -1,0 +1,13 @@
+rules:
+  - id: python-path-traversal
+    patterns:
+      - pattern: |
+          open(f"/var/www/{$USER_INPUT}", ...)
+      - pattern: |
+          open("/var/www/" + $USER_INPUT, ...)
+    message: "Path Traversal: использование пользовательского ввода в пути файла. Злоумышленник может прочитать системные файлы (../../etc/passwd)"
+    languages:
+      - python
+    severity: WARNING
+    metadata:
+      cwe: "CWE-22"
