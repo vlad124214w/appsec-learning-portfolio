@@ -1,0 +1,22 @@
+[
+ {
+  "Description": "Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data.",
+  "StartLine": 34,
+  "EndLine": 34,
+  "StartColumn": 45,
+  "EndColumn": 77,
+  "Match": "REDACTED\"",
+  "Secret": "REDACTED\"",
+  "File": "vulnerable.py",
+  "SymlinkFile": "",
+  "Commit": "a4db832273546a90c990ae55535702466b0828ad",
+  "Entropy": 4.597276,
+  "Author": "Vladislav Groshev",
+  "Email": "vlad124214w@users.noreply.github.com",
+  "Date": "2026-05-11T09:06:03Z",
+  "Message": "TEMP: Add test secret for Gitleaks demo",
+  "Tags": [],
+  "RuleID": "stripe-access-token",
+  "Fingerprint": "a4db832273546a90c990ae55535702466b0828ad:vulnerable.py:stripe-access-token:34"
+ }
+]
