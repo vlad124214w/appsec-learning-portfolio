@@ -84,3 +84,45 @@ jobs:
           else
             echo "Уязвимостей в зависимостях не найдено"
           fi
+  merge-and-jira:
+    name: Merge reports & Jira mock
+    runs-on: ubuntu-latest
+    needs: [semgrep-sast, gitleaks, dependency-check]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download reports
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+        continue-on-error: true
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install requests
+        run: pip install requests
+      
+      - name: Create empty semgrep.json if missing
+        run: |
+          [ -f semgrep.json ] || echo '{"results":[]}' > semgrep.json
+          [ -f gitleaks-report.json ] || echo '{"leaks":[]}' > gitleaks-report.json
+          [ -f depcheck-report.json ] || echo '{}' > depcheck-report.json
+      
+      - name: Run merge_reports.py
+        run: python scripts/merge_reports.py
+      
+      - name: Run jira_mock.py
+        run: python scripts/jira_mock.py --input filtered-issues.json --no-dry-run
+      
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            merged-report.json
+            filtered-issues.json
+            reports/
