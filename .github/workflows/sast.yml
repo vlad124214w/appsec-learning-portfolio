@@ -110,7 +110,10 @@ jobs:
         run: |
           docker run --network host -v $(pwd):/zap/wrk:rw \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:3000 -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
+            zap-baseline.py -t http://localhost:3000 -J /zap/wrk/zap.json -r /zap/wrk/zap.html
+      
+      - name: Debug - list files
+        run: ls -la
       
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
@@ -119,14 +122,6 @@ jobs:
           path: |
             zap.json
             zap.html
-
-      - name: Debug - list files
-        run: |
-          ls -la
-          pwd
-          docker run --network host -v $(pwd):/zap/wrk:rw \
-            ghcr.io/zaproxy/zaproxy:stable \
-            ls -la /zap/wrk/
   merge-and-jira:
     name: Merge reports & Jira mock
     runs-on: ubuntu-latest
