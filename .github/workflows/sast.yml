@@ -119,6 +119,14 @@ jobs:
           path: |
             zap.json
             zap.html
+
+      - name: Debug - list files
+        run: |
+          ls -la
+          pwd
+          docker run --network host -v $(pwd):/zap/wrk:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            ls -la /zap/wrk/
   merge-and-jira:
     name: Merge reports & Jira mock
     runs-on: ubuntu-latest
