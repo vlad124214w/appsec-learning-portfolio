@@ -110,7 +110,7 @@ jobs:
         run: |
           docker run --network host -v $(pwd):/zap/wrk:rw \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:3000 -J zap.json -r zap.html || true
+            zap-baseline.py -t http://localhost:3000 -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
       
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
