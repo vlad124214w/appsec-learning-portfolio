@@ -20,13 +20,13 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --json --config auto /src/ --exclude '.github' --exclude 'scripts' > result.sarif || true
           
-          # if [ -f result.sarif ]; then
-          #   cp result.sarif semgrep.json
-          #   echo "Semgrep report saved"
-          # else
-          #   echo '{"results":[]}' > semgrep.json
-          #   echo "Empty report created"
-          # fi
+          if [ -f result.sarif ]; then
+            cp result.sarif semgrep.json
+            echo "Semgrep report saved"
+          else
+            echo '{"results":[]}' > semgrep.json
+            echo "Empty report created"
+          fi
       
       # - name: Check for findings
       #   run: |
