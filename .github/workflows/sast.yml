@@ -18,13 +18,12 @@ jobs:
       
       - name: Semgrep SAST Scan
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --json --config auto /src/ --exclude '.github' --exclude 'scripts' > result.sarif || true
+          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config auto /src/ --exclude '.github' --exclude 'scripts' > semgrep.json || true
           
-          if [ -f result.sarif ]; then
-            cp result.sarif semgrep.json
+          if [ -f semgrep.json ]; then
             echo "Semgrep report saved"
           else
-            echo '{"results":[]}' > semgrep.json
+            echo '{"runs":[]}' > semgrep.json
             echo "Empty report created"
           fi
       
