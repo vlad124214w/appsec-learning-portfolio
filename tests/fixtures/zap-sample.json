@@ -1,0 +1,35 @@
+{
+  "@version": "1.0.0",
+  "site": "http://localhost:3000",
+  "alerts": [
+    {
+      "name": "SQL Injection",
+      "risk": "High",
+      "url": "http://localhost:3000/rest/products/search",
+      "param": "q",
+      "evidence": "1' OR '1'='1",
+      "cweid": 89,
+      "wascid": 19,
+      "description": "Potential SQL injection",
+      "solution": "Use parameterized queries"
+    },
+    {
+      "name": "Cross Site Scripting (XSS)",
+      "risk": "Medium",
+      "url": "http://localhost:3000/#/search",
+      "param": "q",
+      "evidence": "<script>alert('XSS')</script>",
+      "cweid": 79,
+      "wascid": 8,
+      "description": "Potential XSS vulnerability"
+    },
+    {
+      "name": "Missing Secure Flag",
+      "risk": "Low",
+      "url": "http://localhost:3000/",
+      "param": "JSESSIONID",
+      "cweid": 614,
+      "description": "Cookie without secure flag"
+    }
+  ]
+}
