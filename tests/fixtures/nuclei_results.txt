@@ -1,0 +1,3 @@
+
+[INFO] Found SQL Injection vulnerability: http://localhost:3000/rest/products/search?q='
+[INFO] Found XSS vulnerability: http://localhost:3000/#/search?q=<script>
