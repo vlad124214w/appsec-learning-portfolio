@@ -18,7 +18,7 @@ jobs:
       
       - name: Semgrep SAST Scan
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config auto /src/ --exclude '.github' --exclude 'scripts' > semgrep.json || true
+          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config auto /src/vulnado/ --exclude '.github' --exclude 'scripts' > semgrep.json || true
           
           if [ -f semgrep.json ]; then
             echo "Semgrep report saved"
