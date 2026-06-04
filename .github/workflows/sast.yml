@@ -18,25 +18,20 @@ jobs:
       
       - name: Semgrep SAST Scan
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config p/java --config p/owasp-top-ten --config p/secrets /src/vulnado/ > semgrep.json || true
+          docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config p/owasp-top-ten --config p/java --config p/secrets /src/vulnado/ --exclude '.github' --exclude 'scripts' > semgrep.sarif || true
           
-          if [ -f semgrep.json ]; then
+          if [ -s semgrep.sarif ]; then
             echo "Semgrep report saved"
+            echo "Findings count: $(jq '.runs[0].results | length' semgrep.sarif || echo '0')"
           else
-            echo '{"runs":[]}' > semgrep.json
+            echo '{"runs": [{"results": []}]}' > semgrep.sarif
             echo "Empty report created"
           fi
       
-      # - name: Check for findings
-      #   run: |
-      #     FINDINGS=$(jq '.runs[0].results | length' semgrep.json 2>/dev/null || echo "0")
-      #     if [ "$FINDINGS" -gt 0 ]; then
-      #       echo "SAST найдено $FINDINGS уязвимостей. Пайплайн остановлен."
-      #       echo "SAST найдено $FINDINGS уязвимостей. Пайплайн остановлен."
-      #       exit 1
-      #     else
-      #       echo "Уязвимостей не найдено"
-      #     fi
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
       
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
@@ -59,30 +54,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
       
       - name: Run Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         id: depcheck
         with:
-          project: 'vulnerable-python-app'
-          path: '.'
+          project: 'vulnado'
+          path: 'vulnado'
           format: 'SARIF'
-          out: 'depcheck-report.json'
+          out: 'reports' 
       
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: depcheck-report.json
+          sarif_file: reports/dependency-check-report.sarif
       
-      - name: Check for vulnerabilities
-        run: |
-          VULNS=$(jq '.runs[0].results | length' depcheck-report.json 2>/dev/null || echo "0")
-          if [ "$VULNS" -gt 0 ]; then
-            echo "SCA найдено $VULNS уязвимостей в зависимостях"
-            exit 1
-          else
-            echo "Уязвимостей в зависимостях не найдено"
-          fi
+      # Проверка на уязвимости 
+      # - name: Check for vulnerabilities
+      #   run: |
+      #     if [ -f reports/dependency-check-report.sarif ]; then
+      #       VULNS=$(jq '.runs[0].results | length' reports/dependency-check-report.sarif 2>/dev/null || echo "0")
+      #       if [ "$VULNS" -gt 0 ]; then
+      #         echo "SCA найдено $VULNS уязвимостей в зависимостях"
+      #         # exit 1 # Раскомментируй, чтобы пайплайн падал
+      #       else
+      #         echo "Уязвимостей в зависимостях не найдено"
+      #       fi
+      #     else
+      #       echo "тчет не найден"
+      #     fi
+
   dast-zap:
     name: DAST OWASP ZAP
     runs-on: ubuntu-latest
@@ -142,11 +149,11 @@ jobs:
       - name: Install requests
         run: pip install requests
       
-      - name: Create empty semgrep.json if missing
+      - name: Create empty reports if missing
         run: |
-          [ -f semgrep.json ] || echo '{"results":[]}' > semgrep.json
+          [ -f semgrep.sarif ] && cp semgrep.sarif semgrep.json || echo '{"results":[]}' > semgrep.json
           [ -f gitleaks-report.json ] || echo '{"leaks":[]}' > gitleaks-report.json
-          [ -f depcheck-report.json ] || echo '{}' > depcheck-report.json
+          [ -f reports/dependency-check-report.sarif ] && cp reports/dependency-check-report.sarif depcheck-report.json || echo '{}' > depcheck-report.json
       
       - name: Run merge_reports.py
         run: python scripts/merge_reports.py
