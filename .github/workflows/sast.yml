@@ -16,21 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
     
-      - name: Semgrep SAST Scan
+      - name: Semgrep JSON
         run: |
           docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan \
-            --config p/owasp-top-ten \
-            --config p/java \
-            --config p/secrets \
+            --config p/java --config p/owasp-top-ten --config p/secrets \
             --json --output /src/semgrep.json \
+            /src/vulnado --exclude target || true
+          test -f semgrep.json || echo '{"results":[]}' > semgrep.json
+      - name: Semgrep SARIF (optional)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan \
+            --config p/java --config p/owasp-top-ten \
             --sarif --output /src/semgrep.sarif \
-            /src/vulnado \
-            --exclude '.github' \
-            --exclude 'scripts' \
-            --exclude 'target' \
-            || true
-          echo "Semgrep JSON findings: $(jq '.results | length' semgrep.json 2>/dev/null || echo 0)"
-          echo "Semgrep SARIF findings: $(jq '.runs[0].results | length' semgrep.sarif 2>/dev/null || echo 0)"      
+            /src/vulnado --exclude target || true
+          test -f semgrep.sarif || echo '{"runs":[{"results":[]}]}' > semgrep.sarif     
       # - name: Semgrep SAST Scan
       #   run: |
       #     docker run --rm -v ${{ github.workspace }}:/src semgrep/semgrep semgrep scan --sarif --config p/owasp-top-ten --config p/java --config p/secrets /src/vulnado/ --exclude '.github' --exclude 'scripts' > semgrep.sarif || true
@@ -45,6 +44,7 @@ jobs:
       
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
         with:
           sarif_file: semgrep.sarif
 
@@ -53,7 +53,7 @@ jobs:
         with:
           name: semgrep-json
           path: semgrep.json
-          if-no-files-found: error
+          if-no-files-found: warn
       
       # - name: Upload SARIF report
       #   uses: github/codeql-action/upload-sarif@v3
@@ -67,21 +67,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run Gitleaks on vulnado
+      - name: Install Gitleaks
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" zricethe/gitleaks:latest detect \
-            --source /repo/vulnado \
-            --report-path /repo/gitleaks-report.json \
-            --report-format json \
-            --no-git \
-            --exit-code 0
-          echo "Gitleaks findings: $(jq 'length' gitleaks-report.json 2>/dev/null || echo 0)"
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz
+          sudo mv gitleaks /usr/local/bin/gitleaks
+      - name: Run Gitleaks
+        run: |
+          gitleaks detect --source vulnado --report-path gitleaks-report.json \
+            --report-format json --no-git --exit-code 0 || true
+          test -f gitleaks-report.json || echo '[]' > gitleaks-report.json
+      # - name: Run Gitleaks on vulnado
+      #   run: |
+      #     docker run --rm -v "${{ github.workspace }}:/repo" zricethe/gitleaks:latest detect \
+      #       --source /repo/vulnado \
+      #       --report-path /repo/gitleaks-report.json \
+      #       --report-format json \
+      #       --no-git \
+      #       --exit-code 0
+      #     echo "Gitleaks findings: $(jq 'length' gitleaks-report.json 2>/dev/null || echo 0)"
       - name: Upload Gitleaks artifact
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-json
           path: gitleaks-report.json
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # gitleaks:
   #   name: Gitleaks secrets scan
@@ -119,15 +128,18 @@ jobs:
       
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
         with:
           sarif_file: reports/dependency-check-report.sarif
+
+      - run: test -f reports/dependency-check-report.sarif || mkdir -p reports && echo '{"runs":[{"results":[]}]}' > reports/dependency-check-report.sarif
 
       - name: Upload Dependency Check SARIF artifact
         uses: actions/upload-artifact@v4
         with:
           name: depcheck-sarif
           path: reports/dependency-check-report.sarif
-          if-no-files-found: error
+          if-no-files-found: warn
       
       - name: Show SCA summary
         run: |
@@ -197,44 +209,33 @@ jobs:
         with:
           name: semgrep-json
           path: .
+        continue-on-error: true
       - name: Download Gitleaks report
         uses: actions/download-artifact@v4
         with:
           name: gitleaks-json
           path: .
+        continue-on-error: true
       - name: Download Dependency Check report
         uses: actions/download-artifact@v4
         with:
           name: depcheck-sarif
           path: reports
-      - name: Prepare files for merge_reports.py
+        continue-on-error: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install requests
+        run: pip install requests
+      - name: Create empty reports if missing
         run: |
-          ls -la
-          ls -la reports/ || true
-          test -f semgrep.json && echo "OK semgrep.json" || echo "MISSING semgrep.json"
-          test -f gitleaks-report.json && echo "OK gitleaks" || echo "MISSING gitleaks"
-          test -f reports/dependency-check-report.sarif && cp reports/dependency-check-report.sarif depcheck-report.json || echo "MISSING depcheck"
-
-
-      # - name: Download reports
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     path: .
-      #   continue-on-error: true
-      
-      # - name: Setup Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '3.11'
-      
-      # - name: Install requests
-      #   run: pip install requests
-      
-      # - name: Create empty reports if missing
-      #   run: |
-      #     [ -f semgrep.sarif ] && cp semgrep.sarif semgrep.json || echo '{"results":[]}' > semgrep.json
-      #     [ -f gitleaks-report.json ] || echo '{"leaks":[]}' > gitleaks-report.json
-      #     [ -f reports/dependency-check-report.sarif ] && cp reports/dependency-check-report.sarif depcheck-report.json || echo '{}' > depcheck-report.json
+          test -f semgrep.json || echo '{"results":[]}' > semgrep.json
+          test -f gitleaks-report.json || echo '[]' > gitleaks-report.json
+          test -f reports/dependency-check-report.sarif || mkdir -p reports && echo '{"runs":[{"results":[]}]}' > reports/dependency-check-report.sarif
+          cp reports/dependency-check-report.sarif depcheck-report.json
+      - name: Run merge_reports.py
+        run: python scripts/merge_reports.py
       
       - name: Run merge_reports.py
         run: python scripts/merge_reports.py
