@@ -70,6 +70,26 @@ FP_PATHS = [
 
 FP_CWE_ALLOWLIST = [89, 79, 20]  # SQLi, XSS, Path Traversal
 
+def normalize_cwe(cwe):
+    if not cwe:
+        return None
+    if isinstance(cwe, list):
+        cwe = cwe[0] if cwe else None
+    if not isinstance(cwe, str):
+        return cwe
+    # "CWE-250: описание" -> "CWE-250"
+    if cwe.startswith("CWE-"):
+        return cwe.split(":")[0].strip()
+    return cwe
+def cwe_to_number(cwe):
+    cwe = normalize_cwe(cwe)
+    if cwe and cwe.startswith("CWE-"):
+        try:
+            return int(cwe.replace("CWE-", ""))
+        except ValueError:
+            return None
+    return None
+
 def is_false_positive(finding):
     """Проверяет, является ли уязвимость ложным срабатыванием"""
     location = finding.get("location", "").lower()
@@ -82,7 +102,7 @@ def is_false_positive(finding):
     # 2. Фильтр по CWE + тестовые файлы
     cwe = finding.get("cwe")
     if cwe:
-        cwe_num = int(cwe.replace("CWE-", "")) if isinstance(cwe, str) and cwe.startswith("CWE-") else None
+        cwe_num = cwe_to_number(cwe)
         if cwe_num in FP_CWE_ALLOWLIST and ("test" in location or "example" in location):
             return True
     
@@ -102,6 +122,7 @@ def parse_semgrep(data):
         cwe = finding.get("extra", {}).get("metadata", {}).get("cwe")
         if isinstance(cwe, list):
             cwe = cwe[0] if cwe else None
+        cwe = normalize_cwe(cwe)
         
         finding_dict = {
             "tool": "semgrep",
