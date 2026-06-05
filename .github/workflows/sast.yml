@@ -162,20 +162,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Start Vulnado
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+      - name: Start PostgreSQL
+        run: |
+          docker run -d --name vulnado-db \
+            -e POSTGRES_PASSWORD=vulnado \
+            -e POSTGRES_DB=vulnado \
+            -p 5432:5432 \
+            postgres:15-alpine
+          for i in $(seq 1 30); do
+            docker exec vulnado-db pg_isready -U postgres && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Start Vulnado (Maven)
         working-directory: vulnado
-        run: docker compose up -d --build
+        env:
+          PGHOST: localhost:5432
+          PGDATABASE: vulnado
+          PGUSER: postgres
+          PGPASSWORD: vulnado
+        run: |
+          mvn -B -q -DskipTests spring-boot:run &
+          echo $! > ../vulnado.pid
       - name: Wait for Vulnado
         run: |
-          for i in $(seq 1 40); do
-            if curl -sf http://localhost:8080/cowsay?input=ping >/dev/null 2>&1; then
-              echo "Vulnado API ready"
+          for i in $(seq 1 60); do
+            if curl -sf "http://localhost:8080/cowsay?input=ping" >/dev/null; then
+              echo "Vulnado ready"
               exit 0
             fi
-            echo "Waiting... ($i/40)"
+            echo "Waiting... ($i/60)"
             sleep 5
           done
-          docker compose -f vulnado/docker-compose.yml logs
           exit 1
       - name: Run ZAP baseline on Vulnado
         run: |
@@ -185,10 +207,11 @@ jobs:
             -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
           test -s zap.json || echo '{"site":[]}' > zap.json
           test -f zap.html || echo "<html></html>" > zap.html
-      - name: Stop Vulnado
+      - name: Stop services
         if: always()
-        working-directory: vulnado
-        run: docker compose down -v
+        run: |
+          kill "$(cat vulnado.pid)" 2>/dev/null || true
+          docker rm -f vulnado-db || true
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
         with:
