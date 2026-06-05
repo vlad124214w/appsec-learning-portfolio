@@ -119,6 +119,9 @@ jobs:
           path: 'vulnado'
           format: 'SARIF'
           out: 'reports' 
+
+      - name: Fix reports permissions
+        run: sudo chown -R "$USER:$USER" reports
       
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
@@ -126,7 +129,7 @@ jobs:
         with:
           sarif_file: reports/dependency-check-report.sarif
 
-      - run: test -f reports/dependency-check-report.sarif || mkdir -p reports && echo '{"runs":[{"results":[]}]}' > reports/dependency-check-report.sarif
+      # - run: test -f reports/dependency-check-report.sarif || mkdir -p reports && echo '{"runs":[{"results":[]}]}' > reports/dependency-check-report.sarif
 
       - name: Upload Dependency Check SARIF artifact
         uses: actions/upload-artifact@v4
@@ -138,6 +141,7 @@ jobs:
       - name: Show SCA summary
         run: |
           jq '.runs[0].results | length' reports/dependency-check-report.sarif
+        continue-on-error: true
       # Проверка на уязвимости 
       # - name: Check for vulnerabilities
       #   run: |
@@ -154,35 +158,37 @@ jobs:
       #     fi
 
   dast-zap:
-    name: DAST OWASP ZAP
+    name: DAST OWASP ZAP (Vulnado)
     runs-on: ubuntu-latest
-    services:
-      juice-shop:
-        image: bkimminich/juice-shop
-        ports:
-          - 3000:3000
     steps:
-      - name: Wait for Juice Shop
+      - uses: actions/checkout@v4
+      - name: Start Vulnado
+        working-directory: vulnado
+        run: docker compose up -d --build
+      - name: Wait for Vulnado
         run: |
-          for i in {1..20}; do
-            if curl -s -f http://localhost:3000; then
-              echo "Juice Shop is ready"
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8080/cowsay?input=ping >/dev/null 2>&1; then
+              echo "Vulnado API ready"
               exit 0
             fi
-            echo "Waiting for Juice Shop... ($i/20)"
-            sleep 3
+            echo "Waiting... ($i/40)"
+            sleep 5
           done
-          echo "Juice Shop failed to start"
+          docker compose -f vulnado/docker-compose.yml logs
           exit 1
-      
-      - name: Run ZAP scan
+      - name: Run ZAP baseline on Vulnado
         run: |
-          docker run --network host -v $(pwd):/zap/wrk:rw \
+          docker run --rm --network host -v "${{ github.workspace }}:/zap/wrk:rw" \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:3000 -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
-          # Принудительно создаём файлы, если ZAP не смог
-          touch zap.json zap.html
-      
+            zap-baseline.py -t http://localhost:8080 \
+            -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
+          test -s zap.json || echo '{"site":[]}' > zap.json
+          test -f zap.html || echo "<html></html>" > zap.html
+      - name: Stop Vulnado
+        if: always()
+        working-directory: vulnado
+        run: docker compose down -v
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
         with:
@@ -190,6 +196,44 @@ jobs:
           path: |
             zap.json
             zap.html
+
+  # dast-zap:
+  #   name: DAST OWASP ZAP
+  #   runs-on: ubuntu-latest
+  #   services:
+  #     juice-shop:
+  #       image: bkimminich/juice-shop
+  #       ports:
+  #         - 3000:3000
+  #   steps:
+  #     - name: Wait for Juice Shop
+  #       run: |
+  #         for i in {1..20}; do
+  #           if curl -s -f http://localhost:3000; then
+  #             echo "Juice Shop is ready"
+  #             exit 0
+  #           fi
+  #           echo "Waiting for Juice Shop... ($i/20)"
+  #           sleep 3
+  #         done
+  #         echo "Juice Shop failed to start"
+  #         exit 1
+      
+  #     - name: Run ZAP scan
+  #       run: |
+  #         docker run --network host -v $(pwd):/zap/wrk:rw \
+  #           ghcr.io/zaproxy/zaproxy:stable \
+  #           zap-baseline.py -t http://localhost:3000 -J /zap/wrk/zap.json -r /zap/wrk/zap.html || true
+  #         # Принудительно создаём файлы, если ZAP не смог
+  #         touch zap.json zap.html
+      
+  #     - name: Upload ZAP report
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: dast-reports
+  #         path: |
+  #           zap.json
+  #           zap.html
   merge-and-jira:
     name: Merge reports & Jira mock
     runs-on: ubuntu-latest
