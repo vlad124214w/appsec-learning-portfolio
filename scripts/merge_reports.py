@@ -62,12 +62,6 @@ FP_PATHS = [
     "vulnado/target/",
 ]
 
-# FP_PATHS = [
-#     "tests/", "test_", "mock_", "examples/", 
-#     "venv/", ".venv/", "__pycache__/", 
-#     "node_modules/", ".github/", "docs/"
-# ]
-
 FP_CWE_ALLOWLIST = [89, 79, 20]  # SQLi, XSS, Path Traversal
 
 def normalize_cwe(cwe):
@@ -161,23 +155,6 @@ def parse_gitleaks(data):
             "cvss_score": 7.5,
         })
     return findings
-
-# def parse_gitleaks(data):
-#     findings = []
-#     if not data or "leaks" not in data:
-#         return findings
-#     for finding in data.get("leaks", []):
-#         finding_dict = {
-#             "tool": "gitleaks",
-#             "id": finding.get("ruleID"),
-#             "message": finding.get("description", "Hardcoded secret detected"),
-#             "severity": "HIGH",
-#             "location": f"{finding.get('file')}:{finding.get('line')}",
-#             "cwe": "CWE-798",
-#             "cvss_score": 7.5  # У секретов высокий CVSS по умолчанию
-#         }
-#         findings.append(finding_dict)
-#     return findings
 
 def parse_dependencycheck(data):
     findings = []
