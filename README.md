@@ -1,5 +1,7 @@
 # appsec-learning-portfolio
 
+**Связаться: Telegram @Magic_099**
+
 Application Security Portfolio | DevSecOps Pipeline
 ![CI Security Scan](docs/screenshots/ci-badge.png)
 
@@ -134,7 +136,8 @@ Roadmap
  Удалить vulnado/target/ из истории git
 
 Контакты
-GitHub: @vlad124214wLinkedIn: [вставь ссылку]
+GitHub: @vlad124214w
+Telegram: @Magic_099
 Email: Vlad.groshev.2015@mail.ru
 
 Disclaimer
