@@ -1,12 +1,12 @@
 # appsec-learning-portfolio
 
 Application Security Portfolio | DevSecOps Pipeline
-docs/screenshots/CI Security Scan.png
+![CI Security Scan](docs/screenshots/ci-badge.png)
 
 Учебное портфолио Application Security / DevSecOps: end-to-end CI/CD с SAST, SCA, поиском секретов и DAST.
 Кейс — экспресс-анализ намеренно уязвимого Java-приложения Vulnado с triage, приоритизацией по CVSS и mock-интеграцией в Jira.
 
-docs/screenshots/CI Pipeline — все security jobs успешны.png
+![CI Pipeline](docs/screenshots/ci-pipeline.png)
 Что это за проект:
 
 Репозиторий демонстрирует навыки AppSec-инженера:
@@ -19,10 +19,10 @@ docs/screenshots/CI Pipeline — все security jobs успешны.png
 Это portfolio project в production-style оформлении: не теория из слайдов, а работающий пайплайн с артефактами.
 
 Pipeline overview
-docs/screenshots/Pipeline overview.png
+![Pipeline overview](docs/screenshots/pipeline-overview.png)
 Workflow: .github/workflows/sast.yml
 
-docs/screenshots/table1.png
+![Jobs table](docs/screenshots/table-jobs.png)
 
 Кейс: Security Assessment — Vulnado
 Цель: Vulnado — intentionally vulnerable Spring Boot app (SQLi, SSRF, RCE, XSS, hardcoded secrets).
@@ -31,7 +31,7 @@ Scope: vulnado/src/, конфигурация, зависимости Maven.
 Исключения при triage: vulnado/exercises/, vulnado/target/, артефакты сборки.
 
 Ключевые находки
-docs/screenshots/table2.png
+![Findings table](docs/screenshots/table-findings.png)
 
 Пример CI run с артефактами:
 https://github.com/vlad124214w/appsec-learning-portfolio/actions/runs/27036743639
@@ -97,8 +97,8 @@ False positives и triage
 
 Lessons learned (инженерный опыт)
 В процессе сборки пайплайна решены типичные проблемы DevSecOps:
-docs/screenshots/Lessons learned.png
-docs/screenshots/Артефакты security pipeline.png
+![Lessons learned](docs/screenshots/lessons-learned.png)
+![Artifacts](docs/screenshots/artifacts.png)
 
 Навыки, продемонстрированные в проекте
 
