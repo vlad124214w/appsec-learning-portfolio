@@ -2,6 +2,8 @@
 
 **Связаться: Telegram @Magic_099**
 
+[![SAST Pipeline](https://github.com/vlad124214w/appsec-learning-portfolio/actions/workflows/sast.yml/badge.svg)](https://github.com/vlad124214w/appsec-learning-portfolio/actions/workflows/sast.yml)
+
 Application Security Portfolio | DevSecOps Pipeline
 ![CI Security Scan](docs/screenshots/ci-badge.png)
 
